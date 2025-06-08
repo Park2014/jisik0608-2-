@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>날씨 정보</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 500px;
+            backdrop-filter: blur(10px);
+            transform: translateY(0);
+            transition: transform 0.3s ease;
+        }
+
+        .container:hover {
+            transform: translateY(-5px);
+        }
+
+        .search-box {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #1a2a6c;
+            box-shadow: 0 0 0 3px rgba(26, 42, 108, 0.1);
+        }
+
+        button {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-size: 16px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .weather-info {
+            text-align: center;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .weather-icon {
+            width: 120px;
+            height: 120px;
+            margin: 20px auto;
+            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.1));
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .temperature {
+            font-size: 56px;
+            font-weight: 700;
+            margin: 15px 0;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .description {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 25px;
+            font-weight: 500;
+        }
+
+        .details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 25px;
+        }
+
+        .detail-item {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease;
+        }
+
+        .detail-item:hover {
+            transform: translateY(-5px);
+        }
+
+        .detail-item h3 {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .detail-item p {
+            color: #1a2a6c;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .error {
+            color: #b21f1f;
+            text-align: center;
+            margin-top: 15px;
+            display: none;
+            padding: 10px;
+            background: rgba(178, 31, 31, 0.1);
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        /* 로딩 애니메이션 */
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1a2a6c;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="search-box">
+            <input type="text" id="cityInput" placeholder="도시 이름을 입력하세요" autocomplete="off">
+            <button onclick="getWeather()">검색</button>
+        </div>
+        <div class="loading" id="loading"></div>
+        <div class="error" id="error">도시를 찾을 수 없습니다.</div>
+        <div class="weather-info" id="weatherInfo">
+            <img src="" alt="날씨 아이콘" class="weather-icon" id="weatherIcon">
+            <div class="temperature" id="temperature"></div>
+            <div class="description" id="description"></div>
+            <div class="details">
+                <div class="detail-item">
+                    <h3>습도</h3>
+                    <p id="humidity"></p>
+                </div>
+                <div class="detail-item">
+                    <h3>풍속</h3>
+                    <p id="windSpeed"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = '0c89e47fcdc54f339da21054250806';
+        const weatherInfo = document.getElementById('weatherInfo');
+        const error = document.getElementById('error');
+        const loading = document.getElementById('loading');
+
+        async function getWeather() {
+            const cityInput = document.getElementById('cityInput');
+            const city = cityInput.value;
+
+            if (!city) {
+                showError();
+                return;
+            }
+
+            showLoading();
+            try {
+                const response = await fetch(
+                    `https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${city}&aqi=no`
+                );
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayWeather(data);
+                    hideError();
+                } else {
+                    showError();
+                }
+            } catch (error) {
+                showError();
+            }
+            hideLoading();
+        }
+
+        function displayWeather(data) {
+            const location = data.location;
+            const current = data.current;
+
+            document.getElementById('weatherIcon').src = current.condition.icon;
+            document.getElementById('temperature').textContent = `${current.temp_c}°C`;
+            document.getElementById('description').textContent = current.condition.text;
+            document.getElementById('humidity').textContent = `${current.humidity}%`;
+            document.getElementById('windSpeed').textContent = `${current.wind_kph} km/h`;
+
+            weatherInfo.style.display = 'block';
+        }
+
+        function showError() {
+            error.style.display = 'block';
+            weatherInfo.style.display = 'none';
+        }
+
+        function hideError() {
+            error.style.display = 'none';
+        }
+
+        function showLoading() {
+            loading.style.display = 'block';
+            weatherInfo.style.display = 'none';
+            error.style.display = 'none';
+        }
+
+        function hideLoading() {
+            loading.style.display = 'none';
+        }
+
+        // Enter 키로 검색 가능하도록 설정
+        document.getElementById('cityInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                getWeather();
+            }
+        });
+
+        // 입력 필드 포커스 효과
+        document.getElementById('cityInput').addEventListener('focus', function() {
+            this.parentElement.style.transform = 'scale(1.02)';
+        });
+
+        document.getElementById('cityInput').addEventListener('blur', function() {
+            this.parentElement.style.transform = 'scale(1)';
+        });
+    </script>
+</body>
+</html>
